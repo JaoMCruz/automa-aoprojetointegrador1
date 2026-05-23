@@ -1,4 +1,3 @@
-
 import pandas as pd
 import re
 from datetime import datetime
@@ -30,13 +29,22 @@ for valor in linha_dias:
     if str(valor).isdigit():
         dias.append(int(valor))
 
-funcionario = ""
+funcionario = "Desconhecido"
 
 for index, linha in df.iterrows():
 
-    if str(linha[df.columns[0]]) == "ID":
+    valores = list(linha.values)
 
-        funcionario = str(linha[df.columns[1]]).strip()
+    for j, valor in enumerate(valores):
+
+        if str(valor).strip().lower() == "o nome":
+
+            if j + 1 < len(valores):
+
+                nome = str(valores[j + 1]).strip()
+
+                if nome.lower() != "nan":
+                    funcionario = nome
 
     for i, dia in enumerate(dias):
 
@@ -46,23 +54,12 @@ for index, linha in df.iterrows():
 
         horarios = re.findall(r'\d{2}:\d{2}', valor)
 
+        if len(horarios) == 0:
+            continue
+
         data = datetime(ano, mes, dia)
 
         final_semana = data.weekday() >= 5
-
-        if len(horarios) == 0:
-
-            if final_semana:
-                continue
-
-            else:
-                print(f"""
-                Funcionário: {funcionario}
-                Dia: {dia}
-                Consultar folha manual
-                -------------------------
-                """)
-                continue
 
         if not final_semana:
 
@@ -77,12 +74,12 @@ for index, linha in df.iterrows():
         saida_final = horarios[3] if len(horarios) > 3 else ""
 
         print(f"""
-            Funcionário: {funcionario}
-            Dia: {dia}
+Funcionário: {funcionario}
+Dia: {dia}
 
-            Entrada: {entrada}
-            Saída almoço: {saida_almoco}
-            Volta almoço: {volta_almoco}
-            Saída final: {saida_final}
-            -------------------------
-            """)
+Entrada: {entrada}
+Saída almoço: {saida_almoco}
+Volta almoço: {volta_almoco}
+Saída final: {saida_final}
+-------------------------
+""")

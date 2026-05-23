@@ -1,3 +1,4 @@
+
 import pandas as pd
 import re
 from datetime import datetime
@@ -13,11 +14,19 @@ horario_padrao = [
     "18:00"
 ]
 
+periodo = str(df.iloc[1, 2])
+
+datas = re.findall(r'(\d{4})/(\d{1,2})/\d{1,2}', periodo)
+
+ano = int(datas[0][0])
+mes = int(datas[0][1])
+
 linha_dias = df.iloc[2]
 
 dias = []
 
 for valor in linha_dias:
+
     if str(valor).isdigit():
         dias.append(int(valor))
 
@@ -25,23 +34,9 @@ funcionario = ""
 
 for index, linha in df.iterrows():
 
-    primeira_coluna = str(linha[df.columns[0]]).strip()
+    if str(linha[df.columns[0]]) == "ID":
 
-    if "ID" in primeira_coluna.upper():
-
-        for valor in linha:
-
-            texto = str(valor).strip().lower()
-
-            if "nome" in texto:
-
-                funcionario = texto.split("nome")[-1].strip()
-
-                funcionario = re.sub(r"^\d+\s*", "", funcionario)
-
-                funcionario = funcionario.strip().title()
-
-                break
+        funcionario = str(linha[df.columns[1]]).strip()
 
     for i, dia in enumerate(dias):
 
@@ -51,7 +46,7 @@ for index, linha in df.iterrows():
 
         horarios = re.findall(r'\d{2}:\d{2}', valor)
 
-        data = datetime(2026, 4, dia)
+        data = datetime(ano, mes, dia)
 
         final_semana = data.weekday() >= 5
 
@@ -62,11 +57,11 @@ for index, linha in df.iterrows():
 
             else:
                 print(f"""
-Funcionário: {funcionario}
-Dia: {dia}
-📄 Consultar folha manual
--------------------------
-""")
+                Funcionário: {funcionario}
+                Dia: {dia}
+                Consultar folha manual
+                -------------------------
+                """)
                 continue
 
         if not final_semana:
@@ -82,12 +77,12 @@ Dia: {dia}
         saida_final = horarios[3] if len(horarios) > 3 else ""
 
         print(f"""
-Funcionário: {funcionario}
-Dia: {dia}
+            Funcionário: {funcionario}
+            Dia: {dia}
 
-Entrada: {entrada}
-Saída almoço: {saida_almoco}
-Volta almoço: {volta_almoco}
-Saída final: {saida_final}
--------------------------
-""")
+            Entrada: {entrada}
+            Saída almoço: {saida_almoco}
+            Volta almoço: {volta_almoco}
+            Saída final: {saida_final}
+            -------------------------
+            """)

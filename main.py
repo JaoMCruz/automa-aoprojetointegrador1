@@ -64,7 +64,6 @@ def processar_planilha(arquivo):
     mes = int(datas[0][1])
 
     linha_dias = df.iloc[2]
-
     dias_colunas = []
 
     for coluna in df.columns:
@@ -151,14 +150,10 @@ def processar_planilha(arquivo):
 
                 if semana not in totais_funcionarios[funcionario]["semanas"]:
                     totais_funcionarios[funcionario]["semanas"][semana] = {
-                        "total_trabalhado": timedelta(),
-                        "dias_calculados": 0
+                        "total_trabalhado": timedelta()
                     }
 
                 totais_funcionarios[funcionario]["semanas"][semana]["total_trabalhado"] += total_hora_dia
-
-                if not final_semana:
-                    totais_funcionarios[funcionario]["semanas"][semana]["dias_calculados"] += 1
 
                 dados_diarios.append({
                     "Dia Semana": dia_semana,
@@ -189,7 +184,6 @@ def processar_planilha(arquivo):
 
 
 def atualizar_totais_diarios(df_diario):
-
     carga_horaria_diaria = timedelta(hours=9)
 
     for index, linha in df_diario.iterrows():
@@ -207,12 +201,10 @@ def atualizar_totais_diarios(df_diario):
         )
 
         if not tem_horarios:
-         
-         df_diario.at[index, "Total do Dia"] = "00:00:00"
-         df_diario.at[index, "Saldo do Dia"] = "00:00:00"
-         df_diario.at[index, "Status"] = "Pendente"
-    
-         continue
+            df_diario.at[index, "Total do Dia"] = "00:00:00"
+            df_diario.at[index, "Saldo do Dia"] = "00:00:00"
+            df_diario.at[index, "Status"] = "Pendente"
+            continue
 
         try:
             total_dia = calcular_total_dia(
@@ -237,7 +229,7 @@ def atualizar_totais_diarios(df_diario):
 
 
 def recalcular_resultado(df_diario):
-    carga_horaria_diaria = timedelta(hours=9)
+    carga_horaria_semanal = timedelta(hours=45)
     totais_funcionarios = {}
 
     for _, linha in df_diario.iterrows():
@@ -264,16 +256,10 @@ def recalcular_resultado(df_diario):
 
         if semana not in totais_funcionarios[funcionario]["semanas"]:
             totais_funcionarios[funcionario]["semanas"][semana] = {
-                "total_trabalhado": timedelta(),
-                "dias_calculados": 0
+                "total_trabalhado": timedelta()
             }
 
         totais_funcionarios[funcionario]["semanas"][semana]["total_trabalhado"] += total_hora_dia
-
-        dia_semana = str(linha["Dia Semana"])
-
-        if dia_semana not in ["Sábado", "Domingo"]:
-            totais_funcionarios[funcionario]["semanas"][semana]["dias_calculados"] += 1
 
     dados_resultado = []
 
@@ -282,13 +268,8 @@ def recalcular_resultado(df_diario):
         saldo_final_mes = timedelta()
 
         for semana, totais in dados["semanas"].items():
-
             total_semana = totais["total_trabalhado"]
-            dias_calculados = totais["dias_calculados"]
-
-            carga_semana = carga_horaria_diaria * dias_calculados
-            saldo_semana = total_semana - carga_semana
-
+            saldo_semana = total_semana - carga_horaria_semanal
             saldo_final_mes += saldo_semana
 
         dados_resultado.append({

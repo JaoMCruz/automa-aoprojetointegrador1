@@ -39,9 +39,7 @@ if folha_manual:
     st.info(f"{len(folha_manual)} folha(s) manual(is) carregada(s).")
 
 if st.button("Processar horas"):
-
     if planilha:
-
         with st.spinner("Processando planilha..."):
             df_diario, df_resultado = processar_planilha(planilha)
 
@@ -49,15 +47,14 @@ if st.button("Processar horas"):
         st.session_state["df_resultado"] = df_resultado
 
         st.success("Processamento concluído!")
-
     else:
         st.error("Envie uma planilha primeiro.")
 
 if "df_diario" in st.session_state:
 
-    df_diario = st.session_state["df_diario"]
-
     st.divider()
+
+    df_diario = st.session_state["df_diario"]
 
     funcionarios = sorted(df_diario["Funcionário"].unique())
 
@@ -70,34 +67,43 @@ if "df_diario" in st.session_state:
         df_diario["Funcionário"] == funcionario_selecionado
     ].copy()
 
+    indices_originais = df_funcionario.index
+    df_funcionario = df_funcionario.reset_index(drop=True)
+
     st.subheader("Resultado Diário")
 
-    df_editado = st.data_editor(
-        df_funcionario,
-        use_container_width=True,
-        hide_index=True,
-        num_rows="dynamic",
-        key=f"editor_{funcionario_selecionado}"
-    )
+    with st.form("form_edicao"):
 
-    indices = df_funcionario.index
+        df_editado = st.data_editor(
+            df_funcionario,
+            width="stretch",
+            hide_index=True,
+            num_rows="fixed"
+        )
 
-    st.session_state["df_diario"].loc[
-        indices,
-        df_editado.columns
-    ] = df_editado.values
+        salvar = st.form_submit_button(
+            "Salvar alterações e recalcular"
+        )
 
-    if st.button("Recalcular planilha"):
+    if salvar:
 
-        st.session_state["df_diario"] = atualizar_totais_diarios(
+        st.session_state["df_diario"].loc[
+            indices_originais,
+            df_editado.columns
+        ] = df_editado.values
+
+        df_atualizado = atualizar_totais_diarios(
             st.session_state["df_diario"]
         )
+
+        st.session_state["df_diario"] = df_atualizado
 
         st.session_state["df_resultado"] = recalcular_resultado(
-            st.session_state["df_diario"]
+            df_atualizado
         )
 
-        st.success("Resultados recalculados!")
+        st.success("Alterações salvas e resultados recalculados!")
+        st.rerun()
 
     st.divider()
 
@@ -105,7 +111,7 @@ if "df_diario" in st.session_state:
 
     st.dataframe(
         st.session_state["df_resultado"],
-        use_container_width=True,
+        width="stretch",
         hide_index=True
     )
 

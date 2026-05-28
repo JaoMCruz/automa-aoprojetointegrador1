@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timedelta
 from io import BytesIO
 import calendar
+from ia_folha import ler_folha_manual_ia
 
 
 def formatar_tempo(tempo):
@@ -397,3 +398,10 @@ def gerar_excel(df_diario, df_resultado):
         )
 
     return output.getvalue()
+
+def processar_folha_manual_ia(caminho_imagem):
+    dados_ia = ler_folha_manual_ia(caminho_imagem)
+
+    df_ia = pd.DataFrame(dados_ia)
+
+    return df_ia

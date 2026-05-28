@@ -3,7 +3,8 @@ from main import (
     processar_planilha,
     atualizar_totais_diarios,
     recalcular_resultado,
-    gerar_excel
+    gerar_excel,
+    processar_folha_manual_ia
 )
 
 st.set_page_config(
@@ -15,8 +16,8 @@ st.set_page_config(
 st.title("Sistema Automático de Cálculo - Horas Extras")
 
 st.markdown("""
-Sistema para leitura da planilha do relógio ponto, conferência dos horários
-e geração automática do relatório de horas extras.
+Sistema para leitura da planilha do relógio ponto, conferência dos horários,
+leitura de folha manual com IA e geração automática do relatório de horas extras.
 """)
 
 st.divider()
@@ -27,7 +28,7 @@ planilha = st.file_uploader(
 )
 
 folha_manual = st.file_uploader(
-    "Envie as folhas ponto manual",
+    "Envie a folha ponto manual",
     type=["png", "jpg", "jpeg", "pdf"],
     accept_multiple_files=True
 )
@@ -38,8 +39,29 @@ if planilha:
 if folha_manual:
     st.info(f"{len(folha_manual)} folha(s) manual(is) carregada(s).")
 
+    if st.button("Ler folha manual com IA"):
+
+        arquivo = folha_manual[0]
+
+        with open("folha_temp.jpg", "wb") as f:
+            f.write(arquivo.getbuffer())
+
+        try:
+            with st.spinner("Lendo folha manual com IA..."):
+                df_ia = processar_folha_manual_ia("folha_temp.jpg")
+
+            st.session_state["df_ia"] = df_ia
+
+            st.success("Folha manual lida com IA!")
+
+        except Exception as erro:
+            st.error("A IA está indisponível no momento. Tente novamente em alguns instantes.")
+            st.caption(f"Detalhe técnico: {erro}")
+
 if st.button("Processar horas"):
+
     if planilha:
+
         with st.spinner("Processando planilha..."):
             df_diario, df_resultado = processar_planilha(planilha)
 
@@ -47,6 +69,7 @@ if st.button("Processar horas"):
         st.session_state["df_resultado"] = df_resultado
 
         st.success("Processamento concluído!")
+
     else:
         st.error("Envie uma planilha primeiro.")
 
@@ -92,18 +115,71 @@ if "df_diario" in st.session_state:
             df_editado.columns
         ] = df_editado.values
 
-        df_atualizado = atualizar_totais_diarios(
+        st.session_state["df_diario"] = atualizar_totais_diarios(
             st.session_state["df_diario"]
         )
 
-        st.session_state["df_diario"] = df_atualizado
-
         st.session_state["df_resultado"] = recalcular_resultado(
-            df_atualizado
+            st.session_state["df_diario"]
         )
 
         st.success("Alterações salvas e resultados recalculados!")
         st.rerun()
+
+    if "df_ia" in st.session_state:
+
+        st.divider()
+
+        st.subheader("Resultado da IA")
+
+        st.dataframe(
+            st.session_state["df_ia"],
+            width="stretch",
+            hide_index=True
+        )
+
+        if st.button("Aplicar horários da IA no funcionário selecionado"):
+
+            df_ia = st.session_state["df_ia"]
+
+            for _, linha in df_ia.iterrows():
+
+                dia = linha["dia"]
+
+                entrada = linha["entrada"]
+                saida_almoco = linha["saida_almoco"]
+                volta_almoco = linha["volta_almoco"]
+                saida_final = linha["saida_final"]
+
+                if (
+                    entrada is None or
+                    saida_almoco is None or
+                    volta_almoco is None or
+                    saida_final is None
+                ):
+                    continue
+
+                filtro = (
+                    (st.session_state["df_diario"]["Funcionário"] == funcionario_selecionado) &
+                    (st.session_state["df_diario"]["Dia"] == dia) &
+                    (st.session_state["df_diario"]["Status"] == "Pendente")
+                )
+
+                st.session_state["df_diario"].loc[filtro, "Entrada"] = entrada
+                st.session_state["df_diario"].loc[filtro, "Saída Almoço"] = saida_almoco
+                st.session_state["df_diario"].loc[filtro, "Volta Almoço"] = volta_almoco
+                st.session_state["df_diario"].loc[filtro, "Saída Final"] = saida_final
+
+            st.session_state["df_diario"] = atualizar_totais_diarios(
+                st.session_state["df_diario"]
+            )
+
+            st.session_state["df_resultado"] = recalcular_resultado(
+                st.session_state["df_diario"]
+            )
+
+            st.success("Horários da IA aplicados apenas nos dias pendentes!")
+            st.rerun()
 
     st.divider()
 
